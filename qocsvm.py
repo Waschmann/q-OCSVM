@@ -124,14 +124,3 @@ class QOCSVM():
 		out = np.transpose(np.asarray(out))
 		return out
 
-
-
-rv = mvn(mean=np.zeros(2), cov=.95)
-X = rv.rvs(size=100)
-
-alphas = np.arange(1,10)/10
-quants = QOCSVM(alphas, gamma=.2)
-quants.fit(X)
-result = quants.transform(X)
-print(result.mean(axis=0))
-
