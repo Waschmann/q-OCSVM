@@ -2,18 +2,14 @@ import numpy as np
 from numpy.matlib import repmat
 from scipy.spatial.distance import pdist, cdist, squareform
 from scipy.stats import kstwobign
-from scipy.stats import multivariate_normal as mvn
 from qpoases import PyQProblem as QProblem
 from qpoases import PyOptions as Options
 from qpoases import PyPrintLevel as PrintLevel
 from qpoases import PyReturnValue as ReturnValue
-from time import time
-import json
-import gc
 
 def GaussKernel(X, Y=None, gamma=None):
 	if gamma is None:
-		gamma = 2.5 / X.shape[1]
+		gamma = 1 / X.shape[1]
 	if Y is None:
 		pairwise_sq_dists = squareform(pdist(X, 'sqeuclidean'))
 	else:
@@ -31,7 +27,7 @@ class QOCSVM():
 		alphas: 	Array of values 0 < alpha_i < 1
 		kernel: 	String or function(X, Y), which computes the kernel matrix.
 					Available options: 'gauss'
-		gamma: 		Parameter of the gaussian kernel; Default (None) uses 2.5/dimension
+		gamma: 		Parameter of the gaussian kernel; Default (None) uses 1/dimension
 		solver:		Currently unused
 		max_iter: 	Maximum number of iterations for the QP solver. 
 		tol: 		Tolerance
@@ -52,11 +48,9 @@ class QOCSVM():
 		self.X = None
 		self.tol = tol
 		self.verbose = verbose
-
 	def fit(self, X):
 		q, n = len(self.alphas), X.shape[0]
 		self.X = X
-
 		if self.kernel=='gauss':
 			H = self.kernel_fun(X, gamma=self.gamma)
 		else:
@@ -69,7 +63,6 @@ class QOCSVM():
 		lbA = np.ones(q)
 		lb = np.zeros(q*n)
 		ub = np.ones(q*n)
-
 		for i in range(q):
 			start = i*n + 1
 			end = start + n -1
@@ -83,7 +76,6 @@ class QOCSVM():
 			options.printLevel = PrintLevel.NONE
 			qp.setOptions(options)
 		suc = qp.init(H, g, A, lb, ub, lbA, lbA, self.max_iter)
-
 		if suc == ReturnValue.MAX_NWSR_REACHED:
 			msg = "qPOASES reached the maximum number of iterations ({}). ".format(self.max_iter)
 			msg += "\nThe resulting regions may not be reliable"
@@ -93,13 +85,11 @@ class QOCSVM():
 		qp.getPrimalSolution(etas)
 		etas = etas.reshape(q,n)
 		etastars = etas.sum(axis=0)
-
 		nus = 1-self.alphas
 		SVidx = np.arange(len(etastars))[etastars>self.tol]
 		nSV = len(SVidx)
 		ub = 1/n*nus
 		rhos = np.zeros(q)
-
 		for j, eta in enumerate(etas):
 			choose = np.logical_and(eta > self.tol, eta < ub[j])
 			hyperSVidx = np.arange(len(eta))[choose]
@@ -108,11 +98,10 @@ class QOCSVM():
 				rhos[j] = max(np.dot(H[hyperSVidx][:,SVidx], etastars[SVidx])/q)
 			else:
 				rhos[j] = np.median(np.dot(H[hyperSVidx][:,SVidx], etastars[SVidx])/q)
-
 		self.rhos = rhos
 		self.etastars = etastars
 		return self
-
+		
 	def transform(self, X):
 		q = len(self.rhos)
 		if self.kernel == 'gauss':
