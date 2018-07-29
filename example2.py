@@ -22,8 +22,8 @@ def multi_ks2samp(X, Y, alphas, gamma=None):
 
 
 rv1 = mvn(mean=np.zeros(10)).rvs(100)
-rv2 = mvn(mean=np.zeros(10), cov=.8).rvs(700)
+rv2 = mvn(mean=np.zeros(10), cov=.8).rvs(200)
 
 alphas = np.arange(1,10)/10
 result = multi_ks2samp(rv1, rv2, alphas)
-print(result)
+print('p-value:\t{:.4f} \nstatistic:\t{:6.2f}'.format(result[0],result[1]))

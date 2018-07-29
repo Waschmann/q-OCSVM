@@ -26,7 +26,7 @@ print(alphas)
 print(result.mean(axis=0))
 
 ## plot quantile regions
-N = 100
+N = 150
 grid = [[i,j] for i in range(N) for j in range(N)]
 grid = np.asarray(grid)/N
 a1, a2 = X.min(axis=0)
@@ -35,7 +35,14 @@ grid[:,0] = grid[:,0]*(b1-a1) + a1
 grid[:,1] = grid[:,1]*(b2-a2) + a2
 
 regions = quants.transform(grid).sum(axis=1)
+regions2 = quants.transform(grid, interpolate=True)
 
 plt.scatter(grid[:,0], grid[:,1], c=regions)
 plt.scatter(X[:,0],X[:,1], marker='^', s=8, c='black')
+plt.scatter([0,3],[0,3], marker='x', s=32, c='red')
+plt.show()
+
+plt.scatter(grid[:,0], grid[:,1], c=1-regions2)
+plt.scatter(X[:,0],X[:,1], marker='^', s=8, c='black')
+plt.scatter([0,3],[0,3], marker='x', s=32, c='red')
 plt.show()
