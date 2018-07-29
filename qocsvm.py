@@ -38,7 +38,7 @@ class QOCSVM():
 		transform:	Applies the decision functions on a set of samples X2
 	'''
 	def __init__(self, alphas, kernel='gauss', gamma=None, solver='qPOASES', max_iter=5000, tol=1e-10, verbose=False):
-		self.alphas = alphas
+		self.alphas = np.sort(alphas)
 		self.kernel = kernel if isinstance(kernel, str) else None
 		self.kernel_fun = GaussKernel if kernel=='gauss' else kernel
 		self.gamma = gamma
@@ -102,13 +102,25 @@ class QOCSVM():
 		self.etastars = etastars
 		return self
 		
-	def transform(self, X):
+	def transform(self, X, interpolate=False):
 		q = len(self.rhos)
 		if self.kernel == 'gauss':
 			K = self.kernel_fun(self.X, X, gamma=self.gamma)
 		else:
 			K = self.kernel_fun(self.X, X)
 		objFun = np.dot(K, self.etastars)/q
+		out = np.ones(X.shape[0])
+		if interpolate:
+			for i, x in enumerate(objFun):
+				if x >= max(self.rhos+self.tol):
+					out[i] = min(self.alphas)
+				elif x <= min(self.rhos+self.tol):
+					out[i] = 1
+				else:
+					tmp = np.arange(len(self.rhos))[self.rhos+self.tol<x]
+					c = (x - self.rhos[tmp[0]])/(self.rhos[tmp[0]-1] - self.rhos[tmp[0]])
+					out[i] = (1-c) * self.alphas[tmp[0]] + c * self.alphas[tmp[0]-1]
+			return out
 		out = [(objFun>rho+self.tol).astype(int) for rho in self.rhos]
 		out = np.transpose(np.asarray(out))
 		return out
