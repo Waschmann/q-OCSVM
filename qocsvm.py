@@ -45,6 +45,7 @@ class QOCSVM():
 		self.max_iter = max_iter
 		self.etastars = None
 		self.rhos = None
+		self.rhobounds = None
 		self.X = None
 		self.tol = tol
 		self.verbose = verbose
@@ -100,6 +101,8 @@ class QOCSVM():
 				rhos[j] = np.median(np.dot(H[hyperSVidx][:,SVidx], etastars[SVidx])/q)
 		self.rhos = rhos
 		self.etastars = etastars
+		tmp = np.dot(H[:,SVidx], etastars[SVidx])/q
+		self.rhobounds = tmp.max(), tmp.min()
 		return self
 		
 	def transform(self, X, interpolate=False):
@@ -113,9 +116,11 @@ class QOCSVM():
 		if interpolate:
 			for i, x in enumerate(objFun):
 				if x >= max(self.rhos+self.tol):
-					out[i] = min(self.alphas)
+					c = max(self.rhobounds[0] - x, 0)/(self.rhobounds[0] - max(self.rhos))
+					out[i] = c * min(self.alphas)
 				elif x <= min(self.rhos+self.tol):
-					out[i] = 1
+					c = max(x - self.rhobounds[1], 0)/(min(self.rhos) - self.rhobounds[1])
+					out[i] = (1-c) + c * max(self.alphas)
 				else:
 					tmp = np.arange(len(self.rhos))[self.rhos+self.tol<x]
 					c = (x - self.rhos[tmp[0]])/(self.rhos[tmp[0]-1] - self.rhos[tmp[0]])
